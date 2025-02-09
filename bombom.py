@@ -196,10 +196,10 @@ def main():
 
     # Special cases that need different handling
     # Docker
-    docker_output = run_command("docker images --format 'json'").splitlines()
+    docker_output = run_command("docker images --format 'json'")
     docker_data = []
     if docker_output:
-        for docker_json in docker_output: 
+        for docker_json in docker_output.splitlines(): 
             # print(docker_output)
             docker_json = json.loads(docker_json)
             if "CreatedSince" in docker_json:    
