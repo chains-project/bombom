@@ -43,25 +43,59 @@ import argparse
 import tarfile
 from io import BytesIO
 import time
+import hashlib
 
 
 def run_command(thecommand, shell=False):
-    """Run a command and return its output"""
+    return run_command_x(thecommand, shell)["stdout"]
+
+def runtime_command_version(thecommand):
+    try:
+        assert thecommand.startswith("/"), "Command must be an absolute path"
+        cmd_result = subprocess.run([thecommand, "--version"], capture_output=True, text=True)
+        return cmd_result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        print(f"Error running command {thecommand}: {e}", file=sys.stderr)
+
+def run_command_x(thecommand, shell=False):
+    """Run a command and return its output and executable hash"""
     if isinstance(thecommand, str):
         command = shlex.split(thecommand)
     else:
         command = thecommand
     assert isinstance(command, list)
     executable = command[0]
-    if shutil.which(executable) is None:
+    full_exec = shutil.which(executable)
+    result = {
+        "executable": full_exec,
+        "stdout": None,
+        "hash": None,
+        "version": None,
+    }
+    
+    if full_exec is None:
         print(f"Skipping {executable} exec as it's not installed from {thecommand}", file=sys.stderr)
-        return
+        return result
+
+    result["version"] = runtime_command_version(full_exec)
+        
+    # Calculate SHA256 hash of the executable
     try:
-        result = subprocess.run(command, capture_output=True, text=True, shell=shell)
-        return result.stdout.strip()
+        with open(full_exec, 'rb') as f:
+            file_hash = hashlib.sha256()
+            while chunk := f.read(8192):
+                file_hash.update(chunk)
+            result["hash"] = file_hash.hexdigest()
+    except (IOError, OSError) as e:
+        print(f"Error calculating hash for {full_exec}: {e}", file=sys.stderr)
+        
+    try:
+        cmd_result = subprocess.run(command, capture_output=True, text=True, shell=shell)
+        result["stdout"] = cmd_result.stdout.strip()
     except subprocess.CalledProcessError as e:
         print(f"Error running command {command}: {e}")
-        return None
+        
+    return result
 
 def save_to_file(filename, content):
     """Save content to a file, ensuring there's a newline at the end"""
@@ -109,9 +143,13 @@ def save_all_commands(dir_path, commands):
         dir_path (str): Directory to save files
         commands (list): List of tuples containing (filename, command, shell_flag)
     """
+    audit = {}
     for filename, command, shell in commands:
-        save_command_output(os.path.join(dir_path,filename), command, shell)
-        
+        trail = save_command_output(os.path.join(dir_path,filename), command, shell)
+        if trail:
+            del trail["stdout"]
+            audit[trail["executable"]] = trail
+    save_to_file(os.path.join(dir_path,"path-hashes.json"), json.dumps(audit, indent=2))
 def format(mimetype, output):
     if mimetype == 'text/plain':
         return output
@@ -127,9 +165,11 @@ def save_command_output(filename, command, shell):
     if shutil.which(executable) is None:
         print(f"Skipping {command} command as it's not installed", file=sys.stderr)
         return
-    output = run_command(command, shell=shell)
+    output = run_command_x(command, shell=shell)
+    # print(f"Saving {output['executable']} with hash {output['hash']}")
     if output:
-        save_to_file(filename, output)
+        save_to_file(filename, output["stdout"])
+    return output
 
 def create_tar_from_files(files):
     """Create a tar file from a list of (filename, content) tuples
