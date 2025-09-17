@@ -90,10 +90,12 @@ def run_command_x(thecommand, shell=False):
         print(f"Error calculating hash for {full_exec}: {e}", file=sys.stderr)
         
     try:
-        cmd_result = subprocess.run(command, capture_output=True, text=True, shell=shell)
+        cmd_result = subprocess.run(command, capture_output=True, text=True, shell=shell, timeout=5)
         result["stdout"] = cmd_result.stdout.strip()
     except subprocess.CalledProcessError as e:
         print(f"Error running command {command}: {e}")
+    except subprocess.TimeoutExpired as e:
+        print(f"Command {command} timed out: {e}")
         
     return result
 
@@ -247,6 +249,11 @@ def main():
             docker_data.append(docker_json)
     save_to_file(f"{DIR}/docker.txt", json.dumps(docker_data, indent=2))
 
+    # Python
+    python_version = run_command("python --version")
+    if python_version:
+        append_if_not_exists(f"{DIR}/python-versions.txt", python_version)
+        
     # Firefox
     firefox_version = run_command("firefox --version")
     if firefox_version:
