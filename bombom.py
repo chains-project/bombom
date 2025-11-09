@@ -9,6 +9,7 @@ Package Managers:
 - dpkg (Debian packages)
 - pip (Python packages)
 - pipx (Isolated Python packages)
+- uvx (uv-managed Python packages)
 - flatpak (Containerized applications)
 - snap (Universal Linux packages)
 - npm (Node.js packages)
@@ -101,6 +102,8 @@ def run_command_x(thecommand, shell=False):
 
 def save_to_file(filename, content):
     """Save content to a file, ensuring there's a newline at the end"""
+    if not content:
+        return
     if not content.endswith('\n'):
         content += '\n'
     with open(filename, 'w') as f:
@@ -228,6 +231,7 @@ def main():
         ("pip-system.txt", pip_system, True),
         ("pip-user.txt", "pip3 freeze --user", False),
         ("pipx-list.txt", "pipx list", False),
+        ("uvx-list.txt", "uv tool list", False),
         ("flatpak.txt", "flatpak list", False),
         ("snap.txt", "snap list", False),
         ("npm.txt", "npm list -g", False),
