@@ -25,10 +25,10 @@ System Components:
 - Systemd services
 
 Usage:
-  bombom.py [-d DIR] [-t]
+  bombom.py -d DIR [-t]
 
 Options:
-  -d, --dir DIR  Directory to save SBOM files (default: ./__sbom__)
+  -d, --dir DIR  Directory to save SBOM files (required)
   -t, --tar      Output all files as tar archive to stdout
 
 """
@@ -211,7 +211,7 @@ def create_tar_from_files(files):
 def parse_args():
     parser = argparse.ArgumentParser(description='Save system package information to SBOM files')
     parser.add_argument('--dir', '-d', 
-                    default="./__sbom__",
+                    required=True,
                     help='Directory where to save the SBOM files')
     parser.add_argument('--tar', '-t',
                     action='store_true',
