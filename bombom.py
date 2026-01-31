@@ -21,6 +21,7 @@ System Components:
 - Evolution version
 - Chrome version
 - VS Code version
+- npm version
 - DBus services
 - Systemd services
 
@@ -235,6 +236,7 @@ def main():
         ("flatpak.txt", "flatpak list", False),
         ("snap.txt", "snap list", False),
         ("npm.txt", "npm list -g", False),
+        ("npm-version.txt", "npm --version", False),
     ]
     
     # Execute all commands and save outputs
